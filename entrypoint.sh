@@ -5,14 +5,21 @@ set -euo pipefail
 : "${TELEGRAM_API_ID:?TELEGRAM_API_ID is required for the local Telegram Bot API server}"
 : "${TELEGRAM_API_HASH:?TELEGRAM_API_HASH is required for the local Telegram Bot API server}"
 
-mkdir -p /app/telegram-bot-api-data /app/telegram-bot-api-temp /app/downloads
+BOT_API_HOST="127.0.0.1"
+BOT_API_PORT="7860"
+BOT_API_URL="http://${BOT_API_HOST}:${BOT_API_PORT}/"
+BOT_API_DATA_DIR="/app/telegram-bot-api-data"
+BOT_API_TEMP_DIR="/app/telegram-bot-api-temp"
+DOWNLOAD_DIR="/app/downloads"
 
-# Start the local Telegram Bot API server in the background for co-located bot use.
+mkdir -p "$BOT_API_DATA_DIR" "$BOT_API_TEMP_DIR" "$DOWNLOAD_DIR"
+
 telegram-bot-api \
   --local \
-  --http-port=7860 \
-  --dir=/app/telegram-bot-api-data \
-  --temp-dir=/app/telegram-bot-api-temp \
+  --http-ip-address="$BOT_API_HOST" \
+  --http-port="$BOT_API_PORT" \
+  --dir="$BOT_API_DATA_DIR" \
+  --temp-dir="$BOT_API_TEMP_DIR" \
   --api-id="$TELEGRAM_API_ID" \
   --api-hash="$TELEGRAM_API_HASH" &
 api_pid=$!
@@ -22,19 +29,18 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# Wait for the local Bot API HTTP endpoint and fail fast if it never becomes reachable.
+bot_api_ready() {
+  python3 -c 'import sys, urllib.request; urllib.request.urlopen(sys.argv[1], timeout=1).close()' "$BOT_API_URL" >/dev/null 2>&1
+}
+
 ready=0
-for _ in {1..30}; do
+for _ in $(seq 1 30); do
   if ! kill -0 "$api_pid" 2>/dev/null; then
     echo "telegram-bot-api exited before becoming ready" >&2
     exit 1
   fi
 
-  if python3 - <<'PY' >/dev/null 2>&1
-import urllib.request
-urllib.request.urlopen('http://127.0.0.1:7860/', timeout=1)
-PY
-  then
+  if bot_api_ready; then
     ready=1
     break
   fi
@@ -42,7 +48,7 @@ PY
 done
 
 if [ "$ready" -ne 1 ] || ! kill -0 "$api_pid" 2>/dev/null; then
-  echo "telegram-bot-api did not become ready on http://127.0.0.1:7860 within 30 seconds" >&2
+  echo "telegram-bot-api did not become ready on ${BOT_API_URL} within 30 seconds" >&2
   exit 1
 fi
 
