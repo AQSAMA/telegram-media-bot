@@ -1,23 +1,31 @@
 version: '3.8'
 
 services:
+  # Local Telegram Bot API server to unlock 2 GB limits
+  bot-api:
+    image: aiogram/telegram-bot-api:latest
+    environment:
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
+      TELEGRAM_LOCAL: "true"
+    volumes:
+      - bot-api-data:/var/lib/telegram-bot-api
+    restart: unless-stopped
+
+  # Main Python Telegram Bot
   bot:
     build: .
     env_file: .env
     environment:
       BOT_TOKEN: ${BOT_TOKEN}
-      TELEGRAM_API_ID: ${TELEGRAM_API_ID}
-      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
-      BOT_API_URL: http://127.0.0.1:7860/bot
-      BOT_API_FILE_URL: http://127.0.0.1:7860/file/bot
-    # The local Bot API is for the co-located bot only. Do not publish it publicly.
+      BOT_API_URL: http://bot-api:8081/bot
+      BOT_API_FILE_URL: http://bot-api:8081/file/bot
     volumes:
       - ./downloads:/app/downloads
-      - ./cookies.txt:/app/cookies.txt:ro
-      - bot-api-data:/app/telegram-bot-api-data
-      - bot-api-temp:/app/telegram-bot-api-temp
+      - ./cookies.txt:/app/cookies.txt:ro # Mounts cookies safely if available
+    depends_on:
+      - bot-api
     restart: unless-stopped
 
 volumes:
   bot-api-data:
-  bot-api-temp:
