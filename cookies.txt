@@ -1,0 +1,2 @@
+# Export cookies from your browser here for Instagram/other platforms
+# Format: Netscape cookie file
