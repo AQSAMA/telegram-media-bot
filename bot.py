@@ -74,7 +74,6 @@ async def fetch_with_ytdlp(url: str, dest_dir: Path) -> list[Path]:
         "--no-warnings",
         "--no-playlist",
         "--no-progress",
-        "--no-call-home",
         "--no-mtime",
         "--concurrent-fragments", "4",  # Parallel fragment downloads for speed
         "--retries", "5",
