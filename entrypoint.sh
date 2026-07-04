@@ -33,8 +33,9 @@ for _ in {1..30}; do
   fi
 
   if python3 - <<'PY' >/dev/null 2>&1
-import urllib.request
-urllib.request.urlopen('http://127.0.0.1:7860/', timeout=1)
+import socket
+with socket.create_connection(('127.0.0.1', 7860), timeout=1):
+    pass
 PY
   then
     ready=1
