@@ -13,7 +13,6 @@ ENV PATH="/app/venv/bin:$PATH"
 # Copy and install Python requirements
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir -U yt-dlp
 
 # Copy application scripts
 COPY bot.py .
@@ -21,7 +20,9 @@ COPY entrypoint.sh .
 COPY cookies.txt* .
 
 # Fix script execution permissions and directory access for Hugging Face standard user
-RUN chmod +x entrypoint.sh && chmod -R 777 /app
+RUN mkdir -p /app/downloads /app/telegram-bot-api-data /app/telegram-bot-api-temp \
+    && chmod +x entrypoint.sh \
+    && chmod -R 777 /app
 
 # Hugging Face strictly monitors port 7860
 EXPOSE 7860
