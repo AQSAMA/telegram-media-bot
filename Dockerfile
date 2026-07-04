@@ -13,7 +13,6 @@ ENV PATH="/app/venv/bin:$PATH"
 # Copy and install Python requirements
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir -U yt-dlp
 
 # Copy application scripts
 COPY bot.py .
