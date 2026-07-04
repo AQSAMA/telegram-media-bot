@@ -21,13 +21,14 @@ from telegram.ext import (
 load_dotenv()
 
 BOT_TOKEN        = os.environ["BOT_TOKEN"]
-BOT_API_URL      = os.environ.get("BOT_API_URL", "http://bot-api:8081/bot")
-BOT_API_FILE_URL = os.environ.get("BOT_API_FILE_URL", "http://bot-api:8081/file/bot")
+# Point strictly to localhost on port 7860 where the local server co-exists
+BOT_API_URL      = os.environ.get("BOT_API_URL", "http://127.0.0.1:7860/bot")
+BOT_API_FILE_URL = os.environ.get("BOT_API_FILE_URL", "http://127.0.0.1:7860/file/bot")
 
 DOWNLOAD_DIR = Path("/app/downloads")
 DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-# Limit concurrent operations to save system resources
+# Limit concurrent operations to save container resources
 CONCURRENCY = int(os.environ.get("CONCURRENCY", "3"))
 sem = asyncio.Semaphore(CONCURRENCY)
 
@@ -75,7 +76,7 @@ async def fetch_with_ytdlp(url: str, dest_dir: Path) -> list[Path]:
         "--no-progress",
         "--no-call-home",
         "--no-mtime",
-        "--concurrent-fragments", "4",  # Parallel fragment downloads for pure speed
+        "--concurrent-fragments", "4",  # Parallel fragment downloads for speed
         "--retries", "5",
         "--embed-metadata",
         "--embed-thumbnail",
@@ -84,7 +85,7 @@ async def fetch_with_ytdlp(url: str, dest_dir: Path) -> list[Path]:
         "--output", out_template,
     ]
 
-    # Automatically check and inject cookies if the file exists to bypass anti-bot systems
+    # Automatically check and inject cookies if available
     cookies_file = Path("/app/cookies.txt")
     if cookies_file.exists() and cookies_file.stat().st_size > 0:
         cmd.extend(["--cookies", str(cookies_file)])
@@ -180,7 +181,7 @@ def build_app() -> Application:
         .token(BOT_TOKEN)
         .base_url(BOT_API_URL)
         .base_file_url(BOT_API_FILE_URL)
-        .local_mode(True) # Activates Local Server Mode for 2 GB files
+        .local_mode(True)  # Activates Local Server Mode for 2 GB files
         .read_timeout(600)
         .write_timeout(600)
         .connect_timeout(60)

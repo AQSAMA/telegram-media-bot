@@ -1,17 +1,10 @@
 #!/bin/bash
 
-# Create data directories with appropriate permissions
-mkdir -p /app/tg-data /app/downloads
+# Start the local Telegram Bot API server in the background on port 7860
+telegram-bot-api --local --http-port=7860 --api-id="$TELEGRAM_API_ID" --api-hash="$TELEGRAM_API_HASH" &
 
-# 1. Start the local Telegram Bot API server in the background
-telegram-bot-api \
-  --api-id="${TELEGRAM_API_ID}" \
-  --api-hash="${TELEGRAM_API_HASH}" \
-  --local \
-  --dir=/app/tg-data &
+# Allow server startup latency synchronization
+sleep 3
 
-# 2. Start a dummy HTTP server on port 7860 to satisfy Hugging Face health checks
-python3 -m http.server 7860 &
-
-# 3. Start the main Python Telegram Bot (Keep this in the foreground)
-exec python3 -u bot.py
+# Execute the main Python process
+exec python3 bot.py
