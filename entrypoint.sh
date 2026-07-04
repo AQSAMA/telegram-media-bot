@@ -5,6 +5,10 @@ set -euo pipefail
 : "${TELEGRAM_API_ID:?TELEGRAM_API_ID is required for the local Telegram Bot API server}"
 : "${TELEGRAM_API_HASH:?TELEGRAM_API_HASH is required for the local Telegram Bot API server}"
 
+# Ensure telegram-bot-api storage paths exist before passing them to --dir/--temp-dir.
+# The server resolves these paths at startup and exits if either directory is absent.
+mkdir -p /app/telegram-bot-api-data /app/telegram-bot-api-temp
+
 # Start the local Telegram Bot API server in the background for co-located bot use.
 telegram-bot-api \
   --local \
