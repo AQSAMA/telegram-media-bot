@@ -10,8 +10,7 @@ services:
       TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
       BOT_API_URL: http://127.0.0.1:7860/bot
       BOT_API_FILE_URL: http://127.0.0.1:7860/file/bot
-    ports:
-      - "7860:7860"
+    # The local Bot API is for the co-located bot only. Do not publish it publicly.
     volumes:
       - ./downloads:/app/downloads
       - ./cookies.txt:/app/cookies.txt:ro

@@ -5,7 +5,7 @@ set -euo pipefail
 : "${TELEGRAM_API_ID:?TELEGRAM_API_ID is required for the local Telegram Bot API server}"
 : "${TELEGRAM_API_HASH:?TELEGRAM_API_HASH is required for the local Telegram Bot API server}"
 
-# Start the local Telegram Bot API server in the background on Hugging Face's public port.
+# Start the local Telegram Bot API server in the background for co-located bot use.
 telegram-bot-api \
   --local \
   --http-port=7860 \
@@ -20,16 +20,28 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# Wait for the local Bot API HTTP endpoint instead of sleeping a fixed amount of time.
+# Wait for the local Bot API HTTP endpoint and fail fast if it never becomes reachable.
+ready=0
 for _ in {1..30}; do
+  if ! kill -0 "$api_pid" 2>/dev/null; then
+    echo "telegram-bot-api exited before becoming ready" >&2
+    exit 1
+  fi
+
   if python3 - <<'PY' >/dev/null 2>&1
 import urllib.request
 urllib.request.urlopen('http://127.0.0.1:7860/', timeout=1)
 PY
   then
+    ready=1
     break
   fi
   sleep 1
 done
+
+if [ "$ready" -ne 1 ] || ! kill -0 "$api_pid" 2>/dev/null; then
+  echo "telegram-bot-api did not become ready on http://127.0.0.1:7860 within 30 seconds" >&2
+  exit 1
+fi
 
 exec python3 bot.py

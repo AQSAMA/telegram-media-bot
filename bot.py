@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 import os
 import re
@@ -39,6 +40,11 @@ MEDIA_EXTS = {
     "audio": {".mp3", ".m4a", ".ogg", ".wav", ".flac", ".opus"},
 }
 URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
+DIRECT_FILE_EXTS = set().union(*MEDIA_EXTS.values()) | {
+    ".7z", ".apk", ".bin", ".csv", ".doc", ".docx", ".epub", ".exe",
+    ".gz", ".iso", ".json", ".pdf", ".ppt", ".pptx", ".rar", ".tar",
+    ".txt", ".xls", ".xlsx", ".zip",
+}
 
 
 def human_size(num: int | None) -> str:
@@ -66,7 +72,7 @@ def safe_filename(name: str, fallback: str = "download") -> str:
 
 def looks_like_direct_file(url: str) -> bool:
     path = urlparse(url).path.lower()
-    return any(path.endswith(ext) for exts in MEDIA_EXTS.values() for ext in exts) or bool(Path(path).suffix)
+    return Path(path).suffix in DIRECT_FILE_EXTS
 
 
 async def cmd_start(update: Update, _):
@@ -151,6 +157,8 @@ async def fetch_with_ytdlp(url: str, dest_dir: Path, status) -> list[Path]:
         rc = await proc.wait()
     except asyncio.TimeoutError as exc:
         proc.kill()
+        with contextlib.suppress(Exception):
+            await proc.wait()
         raise RuntimeError("Download timed out while waiting for yt-dlp output.") from exc
 
     if rc != 0:
@@ -220,6 +228,8 @@ async def handle_link(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await edit_status(status, f"❌ Error: {e}")
         finally:
             ping_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await ping_task
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
@@ -230,6 +240,8 @@ async def _keep_pinging(update: Update):
             await asyncio.sleep(4)
     except asyncio.CancelledError:
         pass
+    except Exception:
+        log.exception("Telegram chat action ping task stopped unexpectedly")
 
 
 def build_app() -> Application:
